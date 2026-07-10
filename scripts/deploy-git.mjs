@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DEFAULT_REMOTE = 'https://github.com/RONALDODK47/eye-vision-v1.0.7.git';
+const DEFAULT_REMOTE = 'https://github.com/RONALDODK47/contabil-erp-nova-versao-v1.0.8.git';
 
 function run(cmd, args, opts = {}) {
   const result = spawnSync(cmd, args, {
