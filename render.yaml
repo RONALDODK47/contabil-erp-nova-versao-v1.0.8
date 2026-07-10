@@ -9,6 +9,8 @@ services:
     startCommand: node scripts/agent-api-server.mjs
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: "22.14.0"
       - key: NODE_ENV
         value: production
       - key: AGENT_API_HOST

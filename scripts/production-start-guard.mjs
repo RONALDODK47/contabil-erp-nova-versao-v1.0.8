@@ -10,6 +10,11 @@ function fail(msg) {
 }
 
 if (isProductionRuntime()) {
+  if (!String(process.env.STORAGE_BACKEND || '').trim()) {
+    process.env.STORAGE_BACKEND = 'supabase';
+    console.warn('[production:guard] STORAGE_BACKEND ausente — assumindo supabase.');
+  }
+
   const cors = String(process.env.CORS_ALLOWED_ORIGIN || '').trim();
   if (!cors || cors === '*') {
     fail(
