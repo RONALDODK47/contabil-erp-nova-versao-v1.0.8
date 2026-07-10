@@ -39,17 +39,38 @@ function isValidCorsOrigin(origin) {
 
 function resolveCorsOrigin(requestOrigin) {
   const reqOrigin = sanitizeCorsOrigin(requestOrigin);
-  if (!isProd) return corsOrigins[0] || reqOrigin || '*';
-  if (!reqOrigin) {
-    const fallback = corsOrigins.find(isValidCorsOrigin);
-    return fallback || '';
+  if (!isProd) {
+    const dev = corsOrigins.find(isValidCorsOrigin);
+    return dev || reqOrigin || '*';
   }
-  if (corsOrigins.includes(reqOrigin)) return reqOrigin;
-  if (corsOrigins.some((o) => o.endsWith('.github.io') && reqOrigin.endsWith('.github.io'))) {
+  /** Health-check do Render não envia Origin — não setar header CORS. */
+  if (!reqOrigin) return '';
+  if (corsOrigins.includes(reqOrigin) && isValidCorsOrigin(reqOrigin)) return reqOrigin;
+  if (
+    reqOrigin.endsWith('.github.io') &&
+    corsOrigins.some((o) => o.endsWith('.github.io') && isValidCorsOrigin(o))
+  ) {
     return reqOrigin;
   }
   const fallback = corsOrigins.find(isValidCorsOrigin);
   return fallback || '';
+}
+
+function safeSetCorsHeader(res, origin) {
+  if (!origin || origin === '*') {
+    if (origin === '*') res.setHeader('Access-Control-Allow-Origin', '*');
+    return;
+  }
+  if (!isValidCorsOrigin(origin)) {
+    console.warn('[agent-api] CORS_ALLOWED_ORIGIN inválido — corrija no Render:', origin.slice(0, 80));
+    return;
+  }
+  try {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  } catch (err) {
+    console.warn('[agent-api] Falha ao setar CORS:', err instanceof Error ? err.message : err);
+  }
 }
 
 app.use((req, res, next) => {
@@ -63,13 +84,20 @@ app.use((req, res, next) => {
   next();
 });
 
+/** Health antes do CORS — Render pinga /health sem header Origin. */
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: 'agent-api-server',
+    port: PORT,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use((req, res, next) => {
   const requestOrigin = String(req.headers.origin || '').trim();
   const allowed = resolveCorsOrigin(requestOrigin);
-  if (allowed && (allowed === '*' || isValidCorsOrigin(allowed))) {
-    res.setHeader('Access-Control-Allow-Origin', allowed);
-    res.setHeader('Vary', 'Origin');
-  }
+  safeSetCorsHeader(res, allowed);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
@@ -84,15 +112,6 @@ app.use((req, res, next) => {
 
 /** Workspace/pastas podem trazer PDF base64 — limite maior. */
 app.use(express.json({ limit: '64mb' }));
-
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    ok: true,
-    service: 'agent-api-server',
-    port: PORT,
-    timestamp: new Date().toISOString(),
-  });
-});
 
 const agentRouter = express();
 registerAgentRoutes(agentRouter);
