@@ -1,0 +1,16 @@
+# Opcional — grava dados em pastas visíveis no host (bind mount).
+# Útil para backup direto da pasta e inspeção dos arquivos.
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.bind.yml up -d
+#
+# Pastas criadas em ./data/docker/ (gitignored).
+
+services:
+  postgres:
+    volumes:
+      - ./data/docker/postgres:/var/lib/postgresql/data
+
+  minio:
+    volumes:
+      - ./data/docker/minio:/data

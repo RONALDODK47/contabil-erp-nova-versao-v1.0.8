@@ -1,0 +1,35 @@
+# Blueprint Render — Agent API (backend Eye Vision)
+# Conecte o repositório e defina Root Directory = SOFTWARE-NOVO-PRO (ou raiz se deploy direto).
+services:
+  - type: web
+    name: eye-vision-agent-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node scripts/agent-api-server.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AGENT_API_HOST
+        value: 0.0.0.0
+      - key: STORAGE_BACKEND
+        value: supabase
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: MINIO_S3_ENDPOINT
+        sync: false
+      - key: MINIO_ACCESS_KEY
+        sync: false
+      - key: MINIO_SECRET_KEY
+        sync: false
+      - key: MINIO_BUCKET
+        value: eye-vision
+      - key: CORS_ALLOWED_ORIGIN
+        sync: false
+      - key: ALLOW_DEV_MIGRATION_ROUTES
+        value: "false"

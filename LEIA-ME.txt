@@ -1,0 +1,14 @@
+================================================================================
+  SOFTWARE NOVO PRO — PRONTO PARA PRODUÇÃO
+================================================================================
+
+Deploy: use esta pasta como Root Directory no Vercel e Render.
+
+  1. Leia PRODUCAO.md
+  2. Copie .env.production.example e preencha credenciais Supabase
+  3. npm install && npm run production:setup
+  4. Conecte GitHub no Render (render.yaml) e Vercel (vercel.json)
+
+Local: npm run storage:setup && npm run dev
+
+================================================================================
