@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "VERCEL=1 VITE_STORAGE_BACKEND=supabase npm run build",
   "outputDirectory": "dist",
   "headers": [
     {
@@ -18,8 +18,12 @@
       "destination": "https://api.bcb.gov.br/:path*"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/",
+      "destination": "/v1.0.7/"
+    },
+    {
+      "source": "/v1.0.7/(.*)",
+      "destination": "/v1.0.7/index.html"
     }
   ]
 }

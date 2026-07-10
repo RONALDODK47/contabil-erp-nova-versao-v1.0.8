@@ -58,6 +58,18 @@ function gestaoAdminScopePatch(): Plugin {
 
 /// <reference types="vitest/config" />
 
+import pkg from './package.json';
+
+/** Base pública: GitHub Pages termina em /v1.0.7/; Vercel usa /v1.0.7/ */
+function resolveAppBasePath(): string {
+  const explicit = String(process.env.VITE_BASE_PATH || '').trim();
+  if (explicit) return explicit.endsWith('/') ? explicit : `${explicit}/`;
+  if (process.env.VERCEL === '1' || process.env.VERCEL === 'true') {
+    return `/v${pkg.version}/`;
+  }
+  return '/';
+}
+
 /** Dev / preview: API fiscal local + séries BCB (evita CORS no browser). */
 const devPreviewProxy: Record<string, ProxyOptions> = {
   '/api/fiscal-nfe': {
@@ -89,6 +101,7 @@ const devPreviewProxy: Record<string, ProxyOptions> = {
 };
 
 export default defineConfig(() => ({
+    base: resolveAppBasePath(),
     plugins: [react(), tailwindcss(), gestaoAtAlias(), gestaoAdminScopePatch(), viteDevBackendPlugin(), agentApiDevFallback()],
     test: {
       globals: false,

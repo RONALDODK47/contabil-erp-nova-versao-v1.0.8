@@ -51,16 +51,20 @@ if ((status.status ?? 1) !== 0) {
 
 git('branch', '-M', 'main');
 
-if (git('ls-remote', '--heads', 'origin', 'main') === 0) {
+if (git('ls-remote', '--heads', 'origin', 'main') === 0 && process.env.DEPLOY_GIT_FORCE !== '1') {
   console.info('[deploy:git] Sincronizando com origin/main…');
   const pull = git('pull', 'origin', 'main', '--rebase', '--autostash');
   if (pull !== 0) {
-    console.error('[deploy:git] Conflito no pull — resolva manualmente e rode npm run deploy:git de novo.');
+    console.error('[deploy:git] Conflito no pull.');
+    console.error('  Rode: set DEPLOY_GIT_FORCE=1 && npm run deploy:git  (publica versão local)');
     process.exit(1);
   }
 }
 
-if (git('push', '-u', 'origin', 'main') !== 0) {
+const pushArgs = ['push', '-u', 'origin', 'main'];
+if (process.env.DEPLOY_GIT_FORCE === '1') pushArgs.splice(1, 0, '--force-with-lease');
+
+if (git(...pushArgs) !== 0) {
   console.error('[deploy:git] Push falhou. Verifique permissões no GitHub.');
   process.exit(1);
 }
