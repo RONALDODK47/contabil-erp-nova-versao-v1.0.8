@@ -8,6 +8,8 @@ import {
   INOV_OFFICE_TOKEN,
   LEGACY_DEV_OFFICE_TOKEN,
 } from '../../gestaoContabil/authContextFallback';
+import { getAgentApiBase } from '../../lib/agentApiBase';
+import { resolveStorageBackendMode } from '../../lib/storageBackend';
 import { collectOfficeTokens, readStoredCompanyAccessToken } from './eyeVisionAdmin';
 
 const RESTORED_KEY = 'gc_firebase_cloud_access_restored_v1';
@@ -95,6 +97,13 @@ export async function restoreGestaoCloudAccessFromFirebase(
   const adminUid = String(uid || '').trim();
   if (!adminUid) return null;
 
+  /** Migração Firebase → Docker é só dev local; Supabase usa config já persistido. */
+  if (resolveStorageBackendMode() === 'supabase' && !opts?.force) {
+    const currentSupabase = await dbClient.entities.CloudAccessControl.getConfig();
+    const stored = readStoredCompanyAccessToken();
+    return stored || resolvePrimaryOfficeToken(currentSupabase as GenericRecord) || null;
+  }
+
   const current = await dbClient.entities.CloudAccessControl.getConfig();
   if (!opts?.force && !configLooksEmpty(current)) {
     const stored = readStoredCompanyAccessToken();
@@ -113,7 +122,7 @@ export async function restoreGestaoCloudAccessFromFirebase(
   }
 
   try {
-    const res = await fetch('/api/agent/workspace/firebase-cloud-access');
+    const res = await fetch(`${getAgentApiBase()}/workspace/firebase-cloud-access`);
     if (!res.ok) return null;
     const json = (await res.json()) as { ok?: boolean; config?: GenericRecord };
     const config = json.config;

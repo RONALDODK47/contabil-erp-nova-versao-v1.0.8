@@ -30,6 +30,6 @@ services:
       - key: MINIO_BUCKET
         value: eye-vision
       - key: CORS_ALLOWED_ORIGIN
-        sync: false
+        value: https://ronaldodk47.github.io
       - key: ALLOW_DEV_MIGRATION_ROUTES
         value: "false"

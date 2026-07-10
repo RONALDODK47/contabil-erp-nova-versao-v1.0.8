@@ -6,6 +6,7 @@ import './production-start-guard.mjs';
 import './load-env.mjs';
 import express from 'express';
 import { registerAgentRoutes } from './agent-api-routes.mjs';
+import { registerFiscalHealthStubs } from './fiscal-health-stubs.mjs';
 
 const app = express();
 /** Render/Railway injetam PORT; local usa AGENT_API_PORT ou 8790. */
@@ -14,7 +15,21 @@ const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production'
 const HOST =
   process.env.AGENT_API_HOST || (isProd ? '0.0.0.0' : '127.0.0.1');
 
-const corsOrigin = String(process.env.CORS_ALLOWED_ORIGIN || '').trim();
+const corsOrigins = String(process.env.CORS_ALLOWED_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+function resolveCorsOrigin(requestOrigin) {
+  if (!isProd) return corsOrigins[0] || requestOrigin || '*';
+  if (!requestOrigin) return corsOrigins[0] || '';
+  if (corsOrigins.length === 0) return requestOrigin;
+  if (corsOrigins.includes(requestOrigin)) return requestOrigin;
+  if (corsOrigins.some((o) => o.endsWith('.github.io') && requestOrigin.endsWith('.github.io'))) {
+    return requestOrigin;
+  }
+  return corsOrigins[0] || '';
+}
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -28,14 +43,11 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
-  if (isProd) {
-    if (corsOrigin) {
-      res.setHeader('Access-Control-Allow-Origin', corsOrigin);
-      res.setHeader('Vary', 'Origin');
-    }
-  } else {
-    const allowedOrigin = corsOrigin || '*';
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  const requestOrigin = String(req.headers.origin || '').trim();
+  const allowed = resolveCorsOrigin(requestOrigin);
+  if (allowed) {
+    res.setHeader('Access-Control-Allow-Origin', allowed);
+    res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader(
@@ -71,6 +83,11 @@ app.use('/api/agent', (req, res, next) => {
   req.url = `/agent${suffix}`;
   agentRouter(req, res, next);
 });
+
+/** Health-checks fiscais para o frontend em GitHub Pages (sem fiscal-api separado). */
+const fiscalHealthRouter = express();
+registerFiscalHealthStubs(fiscalHealthRouter);
+app.use('/api/fiscal-nfe', fiscalHealthRouter);
 
 const server = app.listen(PORT, HOST, () => {
   console.info(

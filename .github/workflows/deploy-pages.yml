@@ -19,6 +19,7 @@ jobs:
       VITE_BASE_PATH: /eye-vision-v1.0.7/v1.0.7/
       VITE_STORAGE_BACKEND: supabase
       VITE_AGENT_API_URL: https://eye-vision-agent-api.onrender.com/api/agent
+      VITE_FISCAL_API_URL: https://eye-vision-agent-api.onrender.com/api/fiscal-nfe
     steps:
       - uses: actions/checkout@v4
 

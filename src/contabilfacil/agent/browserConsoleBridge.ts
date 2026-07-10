@@ -87,6 +87,10 @@ const IGNORE_NETWORK_URL_PATTERNS = [
   /api\.bcb\.gov\.br/i,
   /** Lazy load Gestão — falha transitória de HMR; recarregar a página resolve. */
   /vendor\/gestao-contabil\/.*\/src\/pages\/.+\.jsx/i,
+  /** Backend Render / health-checks — cold-start ou offline não poluem Debug. */
+  /eye-vision-agent-api\.onrender\.com/i,
+  /\/api\/agent\//i,
+  /\/api\/fiscal-nfe\//i,
 ];
 
 /** Respostas HTTP não-OK em health-checks opcionais (não poluem Debug). */
@@ -94,6 +98,16 @@ const IGNORE_API_URL_PATTERNS = [
   /\/api\/bcb\//i,
   /api\.bcb\.gov\.br/i,
   /\/workspace\/merge-office-suffixes/i,
+  /\/workspace\/clone-office/i,
+  /\/workspace\/office/i,
+  /\/workspace\/health/i,
+  /\/workspace\/firebase-cloud-access/i,
+  /\/gemini\/health/i,
+  /\/api\/fiscal-nfe\//i,
+  /\/receita-federal\/health/i,
+  /\/sefaz\/icms\/health/i,
+  /\/sped\/health/i,
+  /eye-vision-agent-api\.onrender\.com/i,
 ];
 
 /** Login Firebase com credencial inválida — AuthContext já exibe mensagem na UI. */

@@ -335,24 +335,28 @@ export async function apiMergeOfficeManagerSuffixes(
   toToken: string,
   uid?: string,
 ): Promise<{ ok?: boolean; copiedSuffixes?: number; skipped?: boolean }> {
-  const res = await fetch(`${AGENT_API_BASE}/workspace/merge-office-suffixes`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-Office-Token': toToken,
-      ...(uid ? { 'X-User-Id': uid } : {}),
-    },
-    body: JSON.stringify({ fromToken, toToken, uid }),
-  });
-  if (!res.ok) {
-    if (res.status === 404) {
-      return { ok: true, skipped: true, copiedSuffixes: 0 };
+  try {
+    const res = await fetch(`${AGENT_API_BASE}/workspace/merge-office-suffixes`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Office-Token': toToken,
+        ...(uid ? { 'X-User-Id': uid } : {}),
+      },
+      body: JSON.stringify({ fromToken, toToken, uid }),
+    });
+    if (!res.ok) {
+      if (res.status === 404) {
+        return { ok: true, skipped: true, copiedSuffixes: 0 };
+      }
+      const err = await res.json().catch(() => ({}));
+      throw new Error(String((err as { error?: string }).error || `HTTP ${res.status}`));
     }
-    const err = await res.json().catch(() => ({}));
-    throw new Error(String((err as { error?: string }).error || `HTTP ${res.status}`));
+    return (await res.json()) as { ok?: boolean; copiedSuffixes?: number; skipped?: boolean };
+  } catch {
+    return { ok: true, skipped: true, copiedSuffixes: 0 };
   }
-  return (await res.json()) as { ok?: boolean; copiedSuffixes?: number; skipped?: boolean };
 }
 
 /** Copia dados de um token para outro (ex.: legado → INOV) se destino vazio. */
@@ -361,24 +365,31 @@ export async function apiCloneOfficeWorkspace(
   toToken: string,
   uid?: string,
 ): Promise<{ ok?: boolean; skipped?: boolean; copiedManagers?: number; copiedPastas?: number }> {
-  const res = await fetch(`${AGENT_API_BASE}/workspace/clone-office`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-Office-Token': toToken,
-      ...(uid ? { 'X-User-Id': uid } : {}),
-    },
-    body: JSON.stringify({ fromToken, toToken, uid }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(String((err as { error?: string }).error || `HTTP ${res.status}`));
+  try {
+    const res = await fetch(`${AGENT_API_BASE}/workspace/clone-office`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Office-Token': toToken,
+        ...(uid ? { 'X-User-Id': uid } : {}),
+      },
+      body: JSON.stringify({ fromToken, toToken, uid }),
+    });
+    if (!res.ok) {
+      if (res.status === 404) {
+        return { ok: true, skipped: true, copiedManagers: 0, copiedPastas: 0 };
+      }
+      const err = await res.json().catch(() => ({}));
+      throw new Error(String((err as { error?: string }).error || `HTTP ${res.status}`));
+    }
+    return (await res.json()) as {
+      ok?: boolean;
+      skipped?: boolean;
+      copiedManagers?: number;
+      copiedPastas?: number;
+    };
+  } catch {
+    return { ok: true, skipped: true, copiedManagers: 0, copiedPastas: 0 };
   }
-  return (await res.json()) as {
-    ok?: boolean;
-    skipped?: boolean;
-    copiedManagers?: number;
-    copiedPastas?: number;
-  };
 }
