@@ -15,20 +15,41 @@ const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production'
 const HOST =
   process.env.AGENT_API_HOST || (isProd ? '0.0.0.0' : '127.0.0.1');
 
+function sanitizeCorsOrigin(raw) {
+  return String(raw || '')
+    .replace(/^["']|["']$/g, '')
+    .replace(/[\r\n\u0000-\u001F\u007F]/g, '')
+    .trim();
+}
+
 const corsOrigins = String(process.env.CORS_ALLOWED_ORIGIN || '')
   .split(',')
-  .map((o) => o.trim())
+  .map((o) => sanitizeCorsOrigin(o))
   .filter(Boolean);
 
-function resolveCorsOrigin(requestOrigin) {
-  if (!isProd) return corsOrigins[0] || requestOrigin || '*';
-  if (!requestOrigin) return corsOrigins[0] || '';
-  if (corsOrigins.length === 0) return requestOrigin;
-  if (corsOrigins.includes(requestOrigin)) return requestOrigin;
-  if (corsOrigins.some((o) => o.endsWith('.github.io') && requestOrigin.endsWith('.github.io'))) {
-    return requestOrigin;
+function isValidCorsOrigin(origin) {
+  if (!origin || /[\r\n]/.test(origin)) return false;
+  try {
+    const u = new URL(origin);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
   }
-  return corsOrigins[0] || '';
+}
+
+function resolveCorsOrigin(requestOrigin) {
+  const reqOrigin = sanitizeCorsOrigin(requestOrigin);
+  if (!isProd) return corsOrigins[0] || reqOrigin || '*';
+  if (!reqOrigin) {
+    const fallback = corsOrigins.find(isValidCorsOrigin);
+    return fallback || '';
+  }
+  if (corsOrigins.includes(reqOrigin)) return reqOrigin;
+  if (corsOrigins.some((o) => o.endsWith('.github.io') && reqOrigin.endsWith('.github.io'))) {
+    return reqOrigin;
+  }
+  const fallback = corsOrigins.find(isValidCorsOrigin);
+  return fallback || '';
 }
 
 app.use((req, res, next) => {
@@ -45,7 +66,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const requestOrigin = String(req.headers.origin || '').trim();
   const allowed = resolveCorsOrigin(requestOrigin);
-  if (allowed) {
+  if (allowed && (allowed === '*' || isValidCorsOrigin(allowed))) {
     res.setHeader('Access-Control-Allow-Origin', allowed);
     res.setHeader('Vary', 'Origin');
   }
