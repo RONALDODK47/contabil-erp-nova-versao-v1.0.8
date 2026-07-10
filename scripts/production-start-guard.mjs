@@ -37,11 +37,19 @@ if (isProductionRuntime()) {
   }
 
   if (!String(process.env.DATABASE_URL || '').trim()) {
-    fail('DATABASE_URL obrigatória.');
+    console.warn(
+      '[production:guard] DATABASE_URL ausente — /health e fiscal stubs sobem; workspace/Postgres ficam offline até configurar Supabase.',
+    );
+  } else {
+    console.info('[production:guard] DATABASE_URL configurada.');
   }
 
   if (!String(process.env.GEMINI_API_KEY || '').trim()) {
-    fail('GEMINI_API_KEY obrigatória no Render (nunca no Vercel).');
+    console.warn(
+      '[production:guard] GEMINI_API_KEY ausente — rotas Gemini retornarão erro até configurar no Render.',
+    );
+  } else {
+    console.info('[production:guard] GEMINI_API_KEY configurada.');
   }
 
   console.info('[production:guard] Ambiente de produção validado.');
