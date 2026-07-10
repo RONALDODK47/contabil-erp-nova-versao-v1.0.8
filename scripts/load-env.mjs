@@ -14,5 +14,5 @@ for (const file of [
   `.env.${mode}`,
   `.env.${mode}.local`,
 ]) {
-  config({ path: path.join(root, file), quiet: true, override: true });
+  config({ path: path.join(root, file), quiet: true, override: false });
 }
