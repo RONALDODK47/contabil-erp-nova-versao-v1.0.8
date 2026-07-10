@@ -60,7 +60,7 @@ export function registerWorkspaceRoutes(app) {
     res.status(pg.ok ? 200 : 503).json({
       ok: pg.ok,
       storageBackend: isProductionRuntime() ? 'supabase' : process.env.STORAGE_BACKEND || 'local',
-      postgres: { ok: pg.ok, enabled: pg.enabled },
+      postgres: { ok: pg.ok, enabled: pg.enabled, detail: pg.detail || undefined },
       minio: { ok: minio.ok, enabled: minio.enabled },
     });
   });
