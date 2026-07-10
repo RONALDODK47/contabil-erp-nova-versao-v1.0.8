@@ -23,6 +23,7 @@
     "storage:migrate": "node scripts/storage/migrate.mjs",
     "storage:ensure": "node scripts/storage/ensure-up.mjs",
     "storage:sync-supabase": "node scripts/storage/sync-from-supabase.mjs",
+    "storage:push-supabase": "node scripts/storage/sync-to-supabase.mjs",
     "storage:migrate-firebase": "node scripts/storage/migrate-from-firebase.mjs",
     "storage:setup": "npm run storage:up && node -e \"setTimeout(()=>{},4000)\" && npm run storage:migrate",
     "dev:free-ports": "node scripts/free-dev-ports.mjs",
