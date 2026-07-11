@@ -1,11 +1,12 @@
-import { memo, useEffect, useMemo, useState } from 'react';
-import { Table2, X } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Sparkles, Table2, X } from 'lucide-react';
 import {
   PASTA_LABELS,
   loadAiInteligenciaAsync,
   type AiInteligenciaDoc,
   type AiInteligenciaPasta,
   type AiInteligenciaPastaConfig,
+  type AiInteligenciaStore,
 } from '../logic/aiInteligenciaStorage';
 import {
   buildPastaGrupoTableRows,
@@ -15,6 +16,7 @@ import {
   type PastaTableRow,
 } from '../logic/aiInteligenciaPastaTable';
 import { buildPastasGruposContasParaIa } from '../logic/aiInteligenciaPastaGrupos';
+import { extrairDadosPastaInteligenciaIa } from '../logic/aiInteligenciaPastaExtract';
 
 export type AiInteligenciaPastaTabelaModalProps = {
   open: boolean;
@@ -23,6 +25,7 @@ export type AiInteligenciaPastaTabelaModalProps = {
   docs: AiInteligenciaDoc[];
   pastaConfig?: AiInteligenciaPastaConfig;
   onClose: () => void;
+  onStoreRefresh?: (store: AiInteligenciaStore) => void;
 };
 
 export default memo(function AiInteligenciaPastaTabelaModal({
@@ -32,25 +35,28 @@ export default memo(function AiInteligenciaPastaTabelaModal({
   docs,
   pastaConfig,
   onClose,
+  onStoreRefresh,
 }: AiInteligenciaPastaTabelaModalProps) {
   const [loading, setLoading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractMsg, setExtractMsg] = useState('');
   const [hydratedDocs, setHydratedDocs] = useState<AiInteligenciaDoc[]>(docs);
+
+  const reloadDocs = useCallback(async () => {
+    if (!pasta) return;
+    setLoading(true);
+    const store = await loadAiInteligenciaAsync(company);
+    const byId = new Map(store.docs.map((d) => [d.id, d]));
+    setHydratedDocs(docs.map((d) => byId.get(d.id) ?? d));
+    setLoading(false);
+  }, [company, docs, pasta]);
 
   useEffect(() => {
     if (!open || !pasta) return;
     setHydratedDocs(docs);
-    let cancelled = false;
-    setLoading(true);
-    void loadAiInteligenciaAsync(company).then((store) => {
-      if (cancelled) return;
-      const byId = new Map(store.docs.map((d) => [d.id, d]));
-      setHydratedDocs(docs.map((d) => byId.get(d.id) ?? d));
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, pasta, company, docs]);
+    setExtractMsg('');
+    void reloadDocs();
+  }, [open, pasta, docs, reloadDocs]);
 
   const columns = useMemo(
     () => (pasta ? getPastaTableColumns(pasta) : []),
@@ -73,6 +79,23 @@ export default memo(function AiInteligenciaPastaTabelaModal({
     return buildPastasGruposContasParaIa(company, { [pasta]: pastaConfig });
   }, [company, pasta, pastaConfig]);
 
+  const handleExtract = useCallback(async () => {
+    if (!pasta) return;
+    setExtracting(true);
+    setExtractMsg('');
+    try {
+      const result = await extrairDadosPastaInteligenciaIa(company, pasta);
+      onStoreRefresh?.(result.store);
+      const byId = new Map(result.store.docs.map((d) => [d.id, d]));
+      setHydratedDocs(docs.map((d) => byId.get(d.id) ?? d));
+      setExtractMsg(result.message);
+    } catch (err) {
+      setExtractMsg(err instanceof Error ? err.message : 'Falha na extração');
+    } finally {
+      setExtracting(false);
+    }
+  }, [company, docs, onStoreRefresh, pasta]);
+
   if (!open || !pasta) return null;
 
   const temConteudo = grupoRows.length > 0 || rows.length > 0;
@@ -94,26 +117,39 @@ export default memo(function AiInteligenciaPastaTabelaModal({
               Dados extraídos — {PASTA_LABELS[pasta]}
             </h2>
             <p className="text-[9px] text-slate-600 mt-0.5">
-              Grupos sintéticos + dados dos documentos. A IA usa as analíticas do grupo conforme a
-              descrição do extrato.
+              Clique em «Extrair IA» para processar os documentos e montar a tabela antes de criar regras.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 text-slate-500 hover:text-red-600"
-            aria-label="Fechar tabela"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={extracting || docs.length === 0}
+              onClick={() => void handleExtract()}
+              className="technical-button text-[9px] py-1 px-2 inline-flex items-center gap-1 disabled:opacity-40"
+            >
+              <Sparkles size={12} />
+              {extracting ? 'Extraindo…' : 'Extrair IA'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 text-slate-500 hover:text-red-600"
+              aria-label="Fechar tabela"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0 overflow-auto p-3 space-y-4">
+          {extractMsg ? (
+            <p className="text-[9px] font-bold uppercase text-green-800">{extractMsg}</p>
+          ) : null}
           {loading ? (
             <p className="text-[10px] font-bold uppercase text-brand-text/60">Carregando textos…</p>
           ) : !temConteudo ? (
             <p className="text-[10px] text-brand-text/60 leading-relaxed">
-              Configure os grupos de contas (entrada/saída) ou envie documentos nesta pasta.
+              Configure os grupos de contas (entrada/saída) ou clique em «Extrair IA» com documentos na pasta.
             </p>
           ) : (
             <>

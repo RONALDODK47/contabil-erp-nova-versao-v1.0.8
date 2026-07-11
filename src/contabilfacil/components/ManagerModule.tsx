@@ -2283,6 +2283,7 @@ export default function ManagerModule({
       <AiInteligenciaPastasModal
         open={inteligenciaModalOpen}
         company={selectedCompany}
+        planoOptions={extratoPlanoNomeOptions}
         onClose={() => {
           setInteligenciaModalOpen(false);
           if (reopenRegrasAposInteligenciaRef.current) {

@@ -3,9 +3,11 @@
  * Só pastas + arquivos salvos — cada upload grava de forma independente.
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Brain, FolderOpen, Table2, Trash2, X } from 'lucide-react';
+import { Brain, FolderOpen, Sparkles, Table2, Trash2, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import AiInteligenciaPastaTabelaModal from './AiInteligenciaPastaTabelaModal';
+import PlanoGrupoSinteticoPicker from './PlanoGrupoSinteticoPicker';
+import type { ExtratoPlanoContaOption } from './ExtratoContaPicker';
 import {
   ALL_INTELIGENCIA_PASTAS,
   PASTA_LABELS,
@@ -27,6 +29,7 @@ import {
   type AiInteligenciaStore,
 } from '../logic/aiInteligenciaStorage';
 import { pastaConfigTemGrupos } from '../logic/aiInteligenciaPastaGrupos';
+import { extrairDadosPastaInteligenciaIa } from '../logic/aiInteligenciaPastaExtract';
 import { prepareAnexoForRegrasAi } from '../../lib/aiRegrasAnexos';
 import { extractColigadasWithAi, extractSociosWithAi } from '../../lib/aiColigadasExtractClient';
 import { storageBackendLabel, resolveStorageBackendMode } from '../../lib/storageBackend';
@@ -35,6 +38,7 @@ import { APP_VERSION } from '../../lib/appVersion';
 export type AiInteligenciaPastasModalProps = {
   open: boolean;
   company: string;
+  planoOptions?: ExtratoPlanoContaOption[];
   onClose: () => void;
   onChanged?: (store: AiInteligenciaStore) => void;
 };
@@ -47,11 +51,13 @@ const PASTAS = ALL_INTELIGENCIA_PASTAS;
 export default memo(function AiInteligenciaPastasModal({
   open,
   company,
+  planoOptions = [],
   onClose,
   onChanged,
 }: AiInteligenciaPastasModalProps) {
   const [store, setStore] = useState<AiInteligenciaStore>(() => loadAiInteligencia(company));
   const [busy, setBusy] = useState(false);
+  const [extractingPasta, setExtractingPasta] = useState<AiInteligenciaPasta | null>(null);
   const [error, setError] = useState('');
   const [okMsg, setOkMsg] = useState('');
   const [tabelaPasta, setTabelaPasta] = useState<AiInteligenciaPasta | null>(null);
@@ -101,6 +107,24 @@ export default memo(function AiInteligenciaPastasModal({
       const next = updateAiInteligenciaPastaConfig(company, pasta, { [field]: value });
       refresh(next);
       void persistAiInteligenciaToBackend(company, next);
+    },
+    [company, refresh],
+  );
+
+  const handleExtractPasta = useCallback(
+    async (pasta: AiInteligenciaPasta) => {
+      setExtractingPasta(pasta);
+      setError('');
+      try {
+        const result = await extrairDadosPastaInteligenciaIa(company, pasta);
+        refresh(result.store);
+        void persistAiInteligenciaToBackend(company, result.store);
+        setOkMsg(`${PASTA_LABELS[pasta]}: ${result.message}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Falha na extração IA');
+      } finally {
+        setExtractingPasta(null);
+      }
     },
     [company, refresh],
   );
@@ -323,9 +347,7 @@ export default memo(function AiInteligenciaPastasModal({
               <strong>{storageLabel}</strong>.
             </p>
             <p className="text-[8px] font-mono text-amber-800 mt-1">
-              Versão {APP_VERSION} — cada pasta tem botão <strong>Tabela</strong> e campos Saída/Entrada
-              (sintética). Se ainda vê Balancetes/Outros, abra{' '}
-              <strong>/v{APP_VERSION}/</strong> e pressione Ctrl+F5.
+              Versão {APP_VERSION} — use a lupa nos grupos sintéticos e «Extrair IA» antes de abrir a Tabela.
             </p>
           </div>
           <button
@@ -377,7 +399,9 @@ export default memo(function AiInteligenciaPastasModal({
             {PASTAS.map((pasta) => {
               const cfg = pastaConfigs[pasta];
               const temGrupos = pastaConfigTemGrupos(cfg);
-              const podeAbrirTabela = docsByPasta[pasta].length > 0 || temGrupos;
+              const docCount = docsByPasta[pasta].length;
+              const podeAbrirTabela = docCount > 0 || temGrupos;
+              const extraindo = extractingPasta === pasta;
               return (
               <div
                 key={pasta}
@@ -389,7 +413,17 @@ export default memo(function AiInteligenciaPastasModal({
                     {PASTA_LABELS[pasta]}
                     <span className="opacity-50">({docsByPasta[pasta].length})</span>
                   </p>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                    <button
+                      type="button"
+                      disabled={busy || extraindo || docCount === 0}
+                      onClick={() => void handleExtractPasta(pasta)}
+                      className="text-[8px] font-bold uppercase inline-flex items-center gap-0.5 opacity-70 hover:opacity-100 disabled:opacity-30"
+                      title="IA extrai dados dos documentos desta pasta para a tabela"
+                    >
+                      <Sparkles size={10} />
+                      {extraindo ? '…' : 'Extrair IA'}
+                    </button>
                     <button
                       type="button"
                       disabled={busy || !podeAbrirTabela}
@@ -412,33 +446,34 @@ export default memo(function AiInteligenciaPastasModal({
                 </div>
 
                 <div className="grid grid-cols-2 gap-1.5 mb-2 shrink-0">
-                  <label className="flex flex-col gap-0.5">
+                  <label className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-[7px] font-bold uppercase opacity-60">Saída (sintética)</span>
-                    <input
-                      type="text"
+                    <PlanoGrupoSinteticoPicker
                       value={cfg?.contaGrupoSaida ?? ''}
-                      onChange={(e) =>
-                        handlePastaConfigChange(pasta, 'contaGrupoSaida', e.target.value)
-                      }
+                      options={planoOptions}
+                      disabled={busy || planoOptions.length === 0}
                       placeholder="ex. 4.2.1"
-                      className="text-[8px] font-mono border border-brand-border/50 px-1 py-0.5 bg-white"
-                      title="Conta sintética para saídas (D no banco)"
+                      ariaLabel={`Grupo sintético saída — ${PASTA_LABELS[pasta]}`}
+                      onChange={(v) => handlePastaConfigChange(pasta, 'contaGrupoSaida', v)}
                     />
                   </label>
-                  <label className="flex flex-col gap-0.5">
+                  <label className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-[7px] font-bold uppercase opacity-60">Entrada (sintética)</span>
-                    <input
-                      type="text"
+                    <PlanoGrupoSinteticoPicker
                       value={cfg?.contaGrupoEntrada ?? ''}
-                      onChange={(e) =>
-                        handlePastaConfigChange(pasta, 'contaGrupoEntrada', e.target.value)
-                      }
+                      options={planoOptions}
+                      disabled={busy || planoOptions.length === 0}
                       placeholder="ex. 3.1.2"
-                      className="text-[8px] font-mono border border-brand-border/50 px-1 py-0.5 bg-white"
-                      title="Conta sintética para entradas (C no banco)"
+                      ariaLabel={`Grupo sintético entrada — ${PASTA_LABELS[pasta]}`}
+                      onChange={(v) => handlePastaConfigChange(pasta, 'contaGrupoEntrada', v)}
                     />
                   </label>
                 </div>
+                {planoOptions.length === 0 ? (
+                  <p className="text-[7px] text-amber-800 mb-1">
+                    Importe o plano de contas para buscar grupos sintéticos.
+                  </p>
+                ) : null}
 
                 {docsByPasta[pasta].length === 0 ? (
                   <p className="text-[8px] text-brand-text/40 italic flex-1">
@@ -492,6 +527,10 @@ export default memo(function AiInteligenciaPastasModal({
         docs={tabelaPasta ? docsByPasta[tabelaPasta] : []}
         pastaConfig={tabelaPasta ? pastaConfigs[tabelaPasta] : undefined}
         onClose={() => setTabelaPasta(null)}
+        onStoreRefresh={(next) => {
+          refresh(next);
+          void persistAiInteligenciaToBackend(company, next);
+        }}
       />
     </div>
   );
