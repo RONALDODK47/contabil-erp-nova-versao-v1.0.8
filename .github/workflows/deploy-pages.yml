@@ -16,12 +16,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      VITE_BASE_PATH: /eye-vision-v1.0.7/v1.0.11/
+      VITE_BASE_PATH: /eye-vision-v1.0.7/v1.0.12/
       VITE_STORAGE_BACKEND: supabase
       VITE_AGENT_API_URL: https://contabil-erp-nova-versao-v1-0-8.onrender.com/api/agent
       VITE_FISCAL_API_URL: https://contabil-erp-nova-versao-v1-0-8.onrender.com/api/fiscal-nfe
     steps:
       - uses: actions/checkout@v4
+
+      - name: Checkout gh-pages (preservar versões anteriores)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-prev
+        continue-on-error: true
 
       - uses: actions/setup-node@v4
         with:
@@ -34,14 +41,23 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Organizar pastas para GitHub Pages (/v1.0.11/)
+      - name: Organizar pastas para GitHub Pages (/v1.0.12/)
         run: |
-          mkdir -p dist/v1.0.11
+          mkdir -p dist/v1.0.12
           for item in index.html assets data _redirects; do
-            if [ -e "dist/$item" ]; then mv "dist/$item" "dist/v1.0.11/"; fi
+            if [ -e "dist/$item" ]; then mv "dist/$item" "dist/v1.0.12/"; fi
           done
-          cp "dist/v1.0.11/index.html" "dist/v1.0.11/404.html"
-          printf '%s\n' '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=v1.0.11/"><title>Contábil ERP Nova Versão v1.0.11</title></head><body><p><a href="v1.0.11/">Contábil ERP Nova Versão v1.0.11</a></p></body></html>' > dist/index.html
+          cp "dist/v1.0.12/index.html" "dist/v1.0.12/404.html"
+          if [ -d gh-pages-prev ]; then
+            for dir in gh-pages-prev/v1.0.*; do
+              ver=$(basename "$dir")
+              if [ "$ver" != "v1.0.12" ] && [ -d "$dir" ]; then
+                echo "Preservando $ver"
+                cp -r "$dir" "dist/$ver"
+              fi
+            done
+          fi
+          printf '%s\n' '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=v1.0.12/"><title>Contábil ERP Nova Versão v1.0.12</title></head><body><p><a href="v1.0.12/">Contábil ERP Nova Versão v1.0.12</a></p></body></html>' > dist/index.html
 
       - uses: peaceiris/actions-gh-pages@v4
         with:

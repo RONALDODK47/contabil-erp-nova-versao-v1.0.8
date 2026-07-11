@@ -30,6 +30,7 @@ import { pastaConfigTemGrupos } from '../logic/aiInteligenciaPastaGrupos';
 import { prepareAnexoForRegrasAi } from '../../lib/aiRegrasAnexos';
 import { extractColigadasWithAi, extractSociosWithAi } from '../../lib/aiColigadasExtractClient';
 import { storageBackendLabel, resolveStorageBackendMode } from '../../lib/storageBackend';
+import { APP_VERSION } from '../../lib/appVersion';
 
 export type AiInteligenciaPastasModalProps = {
   open: boolean;
@@ -320,6 +321,11 @@ export default memo(function AiInteligenciaPastasModal({
               <strong>obrigatoriamente</strong> usa esta configuração para criar regras (coligadas,
               sócios, honorários, financeiras). Grava automaticamente em{' '}
               <strong>{storageLabel}</strong>.
+            </p>
+            <p className="text-[8px] font-mono text-amber-800 mt-1">
+              Versão {APP_VERSION} — cada pasta tem botão <strong>Tabela</strong> e campos Saída/Entrada
+              (sintética). Se ainda vê Balancetes/Outros, abra{' '}
+              <strong>/v{APP_VERSION}/</strong> e pressione Ctrl+F5.
             </p>
           </div>
           <button
