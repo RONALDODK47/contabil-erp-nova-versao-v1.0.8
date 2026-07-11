@@ -68,7 +68,7 @@ export default function PersistenceStatusBar() {
 
   return (
     <div
-      className="flex items-center gap-2 shrink-0 max-w-[min(100%,14rem)] sm:max-w-[18rem]"
+      className="flex items-center gap-2 w-full max-w-full"
       role="status"
       aria-live="polite"
       aria-label={ariaLabel}

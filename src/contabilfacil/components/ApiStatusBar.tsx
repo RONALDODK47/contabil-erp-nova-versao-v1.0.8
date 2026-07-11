@@ -106,25 +106,27 @@ export default function ApiStatusBar({ activeTab }: { activeTab: ActiveTab }) {
   if (registry.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-start lg:justify-end gap-x-4 gap-y-1 max-w-full lg:max-w-[min(100%,52rem)]">
-      {registry.map((entry) => (
-        <ApiStatusItem
-          key={entry.id}
-          entry={entry}
-          status={statusMap[entry.id] ?? 'checking'}
-          titleOverride={
-            entry.id === 'bcb' ? bcbTitle : entry.id === 'gemini' ? geminiTitle : undefined
-          }
-        />
-      ))}
-      <button
-        type="button"
-        onClick={() => void refresh(true)}
-        className="text-[8px] font-mono font-bold uppercase opacity-50 hover:opacity-100 underline shrink-0"
-        title="Atualizar status (Gemini faz ping real na Google). Fiscal :8780 OFF? Rode npm run dev."
-      >
-        Atualizar
-      </button>
+    <div className="w-full overflow-x-auto overflow-y-hidden">
+      <div className="flex flex-nowrap items-center gap-x-4 min-w-max pr-2">
+        {registry.map((entry) => (
+          <ApiStatusItem
+            key={entry.id}
+            entry={entry}
+            status={statusMap[entry.id] ?? 'checking'}
+            titleOverride={
+              entry.id === 'bcb' ? bcbTitle : entry.id === 'gemini' ? geminiTitle : undefined
+            }
+          />
+        ))}
+        <button
+          type="button"
+          onClick={() => void refresh(true)}
+          className="text-[8px] font-mono font-bold uppercase opacity-50 hover:opacity-100 underline shrink-0 whitespace-nowrap"
+          title="Atualizar status (Gemini faz ping real na Google). Fiscal :8780 OFF? Rode npm run dev."
+        >
+          Atualizar
+        </button>
+      </div>
     </div>
   );
 }

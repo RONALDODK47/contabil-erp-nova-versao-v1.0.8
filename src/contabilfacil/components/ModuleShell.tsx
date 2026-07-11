@@ -5,6 +5,7 @@ import type { ActiveTab } from '../types';
 import ApiStatusBar from './ApiStatusBar';
 import PersistenceStatusBar from './PersistenceStatusBar';
 import AdminOfficeTokenSwitcher from './AdminOfficeTokenSwitcher';
+import WorkspaceOfflineBanner from './WorkspaceOfflineBanner';
 // @ts-expect-error módulo JSX da gestão contábil
 import { useAuth } from '../../gestaoContabil/gestaoAuth';
 
@@ -54,14 +55,9 @@ export function ModuleShell({ activeTab, onBack, children }: ModuleShellProps) {
             ) : null}
           </div>
         </div>
-
-        {activeTab !== 'admin' && activeTab !== 'gestao' ? (
-          <div className="pb-2 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 min-w-0 border-t border-brand-border/40 lg:border-t-0">
-            <PersistenceStatusBar />
-            <ApiStatusBar activeTab={activeTab} />
-          </div>
-        ) : null}
       </header>
+
+      {activeTab !== 'admin' && activeTab !== 'gestao' ? <WorkspaceOfflineBanner /> : null}
 
       <main
         className={
@@ -73,9 +69,17 @@ export function ModuleShell({ activeTab, onBack, children }: ModuleShellProps) {
         {children}
       </main>
 
-      <footer className="h-7 border-t border-brand-border bg-brand-sidebar flex items-center justify-between px-6 text-[9px] font-mono opacity-60 shrink-0">
-        <span className="uppercase truncate">{meta?.folder}</span>
-        <span className="font-bold">v2.5 · módulo isolado</span>
+      <footer className="border-t border-brand-border bg-brand-sidebar shrink-0">
+        {activeTab !== 'admin' && activeTab !== 'gestao' ? (
+          <div className="px-4 md:px-6 py-2 space-y-2 border-b border-brand-border/50 bg-brand-bg/80">
+            <PersistenceStatusBar />
+            <ApiStatusBar activeTab={activeTab} />
+          </div>
+        ) : null}
+        <div className="h-7 flex items-center justify-between px-6 text-[9px] font-mono opacity-60">
+          <span className="uppercase truncate">{meta?.folder}</span>
+          <span className="font-bold">v2.5 · módulo isolado</span>
+        </div>
       </footer>
     </div>
   );
