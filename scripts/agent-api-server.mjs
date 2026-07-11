@@ -46,12 +46,8 @@ function resolveCorsOrigin(requestOrigin) {
   /** Health-check do Render não envia Origin — não setar header CORS. */
   if (!reqOrigin) return '';
   if (corsOrigins.includes(reqOrigin) && isValidCorsOrigin(reqOrigin)) return reqOrigin;
-  if (
-    reqOrigin.endsWith('.github.io') &&
-    corsOrigins.some((o) => o.endsWith('.github.io') && isValidCorsOrigin(o))
-  ) {
-    return reqOrigin;
-  }
+  /** GitHub Pages (qualquer *.github.io) — frontend estático na nuvem. */
+  if (reqOrigin.endsWith('.github.io') && isValidCorsOrigin(reqOrigin)) return reqOrigin;
   const fallback = corsOrigins.find(isValidCorsOrigin);
   return fallback || '';
 }
