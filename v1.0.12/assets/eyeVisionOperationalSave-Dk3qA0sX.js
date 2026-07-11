@@ -1,0 +1,1 @@
+const e=new Set;function o(){for(const n of e)try{n()}catch{}}function i(n,t=null){o()}const r=2500;function a(){}function c(n=r){i(),import("./eyeVisionCloudPush-DyAU-pcB.js").then(({scheduleEyeVisionCloudPush:t})=>{t()})}export{r as OPERATIONAL_SAVE_DEBOUNCE_MS,a as markOperationalStorageDirty,c as scheduleEyeVisionOperationalSave};
